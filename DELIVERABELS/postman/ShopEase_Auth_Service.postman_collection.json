@@ -1,0 +1,1201 @@
+{
+  "info": {
+    "name": "ShopEase Auth Service",
+    "description": "The 22 mandatory API scenarios. Dummy credentials only. Run the folders in order.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// A new number for each run, so that test emails do not collide.",
+          "if (!pm.collectionVariables.get(\"run_id\")) { pm.collectionVariables.set(\"run_id\", String(Date.now())); }"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "run_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Setup",
+      "item": [
+        {
+          "name": "Register the main test user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\",\n  \"confirm_password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Log in and save the token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "if (pm.response.code === 200) { pm.environment.set(\"access_token\", pm.response.json().access_token); }"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Registration",
+      "item": [
+        {
+          "name": "TC-01 Register a new user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"tc01.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\",\n  \"confirm_password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 201\", function () { pm.response.to.have.status(201); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Role USER and active\", function () { var json = pm.response.json(); pm.expect(json.user.role === \"USER\" && json.user.is_active === true).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-02 Duplicate email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\",\n  \"confirm_password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 409\", function () { pm.response.to.have.status(409); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Email already registered\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Email already registered\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-03 Invalid email format",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"not-an-email\",\n  \"password\": \"Test!Pass123\",\n  \"confirm_password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", function () { pm.response.to.have.status(422); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Errors on email\", function () { var json = pm.response.json(); pm.expect(JSON.stringify(json.errors.map(function (e) { return e.field; }).sort()) === \"[\\\"email\\\"]\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-04 Missing required fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tc04.{{run_id}}@example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", function () { pm.response.to.have.status(422); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Errors on full_name, password, confirm_password\", function () { var json = pm.response.json(); pm.expect(JSON.stringify(json.errors.map(function (e) { return e.field; }).sort()) === \"[\\\"confirm_password\\\",\\\"full_name\\\",\\\"password\\\"]\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-05 Mismatched confirm password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"tc05.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\",\n  \"confirm_password\": \"Wrong!Pass789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", function () { pm.response.to.have.status(422); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Errors on confirm_password\", function () { var json = pm.response.json(); pm.expect(JSON.stringify(json.errors.map(function (e) { return e.field; }).sort()) === \"[\\\"confirm_password\\\"]\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-06 Weak password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"full_name\": \"Test User\",\n  \"email\": \"tc06.{{run_id}}@example.com\",\n  \"password\": \"weak\",\n  \"confirm_password\": \"weak\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", function () { pm.response.to.have.status(422); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Errors on password\", function () { var json = pm.response.json(); pm.expect(JSON.stringify(json.errors.map(function (e) { return e.field; }).sort()) === \"[\\\"password\\\"]\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Login",
+      "item": [
+        {
+          "name": "TC-07 Valid login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Token returned\", function () { var json = pm.response.json(); pm.expect(typeof json.access_token === \"string\" && json.token_type === \"bearer\").to.be.true; });",
+                  "if (pm.response.code === 200) { pm.environment.set(\"access_token\", pm.response.json().access_token); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-08 Wrong password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"Wrong!Pass789\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Invalid email or password\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Invalid email or password\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-09 Unknown email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tc09.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Invalid email or password\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Invalid email or password\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-10 Inactive user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{inactive_email}}\",\n  \"password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 403\", function () { pm.response.to.have.status(403); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Inactive user\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Inactive user\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "JWT authentication",
+      "item": [
+        {
+          "name": "TC-11 Current user with a valid token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Profile fields only\", function () { var json = pm.response.json(); pm.expect(JSON.stringify(Object.keys(json).sort()) === JSON.stringify([\"email\",\"full_name\",\"id\",\"is_active\",\"role\"])).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-12 Current user with no token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Could not validate credentials\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Could not validate credentials\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-13 Current user with an invalid token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-valid-token",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Could not validate credentials\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Could not validate credentials\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-14 Current user with an expired token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{expired_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"expired_token is set\", function () { var json = pm.response.json(); pm.expect((pm.environment.get(\"expired_token\") || \"\").length > 0).to.be.true; });",
+                  "pm.test(\"Detail is Could not validate credentials\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Could not validate credentials\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-15 Verify a valid token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-token"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"valid is true\", function () { var json = pm.response.json(); pm.expect(json.valid === true).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-16 Verify an invalid token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify-token",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-token"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-valid-token",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Could not validate credentials\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Could not validate credentials\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Change password",
+      "item": [
+        {
+          "name": "TC-18 Wrong current password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Wrong!Pass789\",\n  \"new_password\": \"New!Pass456\",\n  \"confirm_new_password\": \"New!Pass456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400\", function () { pm.response.to.have.status(400); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Current password is incorrect\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Current password is incorrect\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-19 Weak new password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Test!Pass123\",\n  \"new_password\": \"weak\",\n  \"confirm_new_password\": \"weak\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 422\", function () { pm.response.to.have.status(422); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Errors on new_password\", function () { var json = pm.response.json(); pm.expect(JSON.stringify(json.errors.map(function (e) { return e.field; }).sort()) === \"[\\\"new_password\\\"]\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-20 No token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Test!Pass123\",\n  \"new_password\": \"New!Pass456\",\n  \"confirm_new_password\": \"New!Pass456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Could not validate credentials\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Could not validate credentials\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-17 Valid password change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"Test!Pass123\",\n  \"new_password\": \"New!Pass456\",\n  \"confirm_new_password\": \"New!Pass456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Only a message\", function () { var json = pm.response.json(); pm.expect(json.message === \"Password changed successfully\" && Object.keys(json).length === 1).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-21 Login with the new password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"New!Pass456\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200\", function () { pm.response.to.have.status(200); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Token returned\", function () { var json = pm.response.json(); pm.expect(typeof json.access_token === \"string\" && json.token_type === \"bearer\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "TC-22 Login with the old password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"postman.{{run_id}}@example.com\",\n  \"password\": \"Test!Pass123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 401\", function () { pm.response.to.have.status(401); });",
+                  "var text = pm.response.text();",
+                  "pm.test(\"No password data returned\", function () { pm.expect(text).to.not.include(\"password_hash\"); pm.expect(text).to.not.match(/\\$2[aby]\\$/); });",
+                  "pm.test(\"Detail is Invalid email or password\", function () { var json = pm.response.json(); pm.expect(json.detail === \"Invalid email or password\").to.be.true; });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

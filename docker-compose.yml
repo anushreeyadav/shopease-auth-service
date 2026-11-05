@@ -1,0 +1,53 @@
+# Standalone stack for this service: the API and its own MySQL database.
+# Values come from .env (see .env.example).
+
+name: shopease-auth-service
+
+services:
+  auth-mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?set in .env}"
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shopease_auth_db}
+      MYSQL_USER: "${MYSQL_USER:?set in .env}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?set in .env}"
+    # This machine only, so that Alembic and the API can also run outside a container.
+    ports: ["127.0.0.1:${MYSQL_PORT:-3308}:3306"]
+    volumes:
+      - auth_mysql_data:/var/lib/mysql
+    healthcheck:
+      # TCP ping: fails during first-run initialisation (temporary server without networking).
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+
+  auth-service:
+    build: .
+    image: shopease-auth-service:dev
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-ShopEase Auth Service}
+      APP_VERSION: ${APP_VERSION:-0.1.0}
+      APP_ENV: ${APP_ENV:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      API_PREFIX: ${API_PREFIX:-/api}
+      DOCS_ENABLED: ${DOCS_ENABLED:-true}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-shopease_auth_db}
+      MYSQL_USER: "${MYSQL_USER:?set in .env}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD:?set in .env}"
+      # Container network address, not the MYSQL_HOST and MYSQL_PORT values in .env.
+      MYSQL_HOST: auth-mysql
+      MYSQL_PORT: "3306"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:?set in .env}"
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+    ports: ["127.0.0.1:${AUTH_SERVICE_HOST_PORT:-8001}:8001"]
+    depends_on:
+      auth-mysql:
+        condition: service_healthy
+
+volumes:
+  auth_mysql_data:

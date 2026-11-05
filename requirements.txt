@@ -1,0 +1,26 @@
+# Web framework and server
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+
+# Database
+SQLAlchemy==2.1.6
+PyMySQL==1.2.3
+alembic==1.20.1
+
+# Validation and settings
+pydantic==2.14.2
+pydantic-settings==2.16.2
+python-dotenv==1.2.4
+email-validator==2.3.0
+
+# Security
+passlib[bcrypt]==1.7.4
+# Passlib 1.7.4 is not compatible with newer bcrypt releases. Do not upgrade without retesting.
+bcrypt==4.0.1
+python-jose[cryptography]==3.5.0
+# Also required by PyMySQL for MySQL 8 caching_sha2_password authentication.
+cryptography==50.0.2
+
+# Testing
+pytest==9.2.0
+httpx==0.28.1
